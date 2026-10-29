@@ -1,0 +1,101 @@
+# ==========================================
+# Becha-Kena - Root .gitignore
+# ==========================================
+
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnpm-store/
+
+# Environment & Secret Files (Keep templates safe)
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*.cert
+*.crt
+
+# Production & Build Outputs
+dist/
+build/
+out/
+.next/
+.nuxt/
+.cache/
+.parcel-cache/
+
+# TypeScript & Linter Cache
+*.tsbuildinfo
+.eslintcache
+.stylelintcache
+
+# Logs & Runtime
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Testing & Coverage
+coverage/
+.nyc_output/
+.jest/
+.mongo-memory-server/
+
+# File Uploads & Local Storage (C2C Marketplace assets)
+uploads/
+**/uploads/
+storage/
+temp/
+tmp/
+*.dump
+
+# Database files
+*.sqlite
+*.sqlite3
+*.db
+dump/
+
+# OS Generated Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Thumbs.db:encryptable
+desktop.ini
+$RECYCLE.BIN/
+
+# IDE & Editor Configurations
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/launch.json
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+*.swo
+
+# AI / Assistant Scratch Files
+.gemini/
+scratch/

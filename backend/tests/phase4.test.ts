@@ -116,6 +116,27 @@ describe('Phase 4: E-KYC Zero-Knowledge Identity Engine Specification', () => {
       expect(maskLegalName('ABUL KASHEM')).toBe('A*** K*****');
       expect(maskPhone('+8801712345678')).toBe('+88017****5678');
     });
+
+    it('KYCProviderFactory falls back gracefully to secondary provider on primary failure', async () => {
+      const failingPrimary = {
+        extractOcr: jest.fn().mockRejectedValue(new Error('Gateway timeout')),
+        verifyDemographics: jest.fn().mockRejectedValue(new Error('Gateway 502')),
+        matchFace: jest.fn().mockRejectedValue(new Error('Gateway 504'))
+      };
+
+      const factory = new KYCProviderFactory();
+      factory.setProvider(failingPrimary as any);
+      (factory as any).currentProviderType = 'porichoy';
+
+      const demo = await factory.verifyDemographics('19942691234567890', '1994-05-18');
+      expect(demo.fullNameEnglish).toBe('FARHANA RAHMAN');
+
+      const ocr = await factory.extractOcr(Buffer.from('f'), Buffer.from('b'));
+      expect(ocr.nidNumber).toBe('19942691234567890');
+
+      const face = await factory.matchFace('ec', 'live');
+      expect(face.isMatch).toBe(true);
+    });
   });
 
   describe('4.3 Endpoint 1: POST /api/v1/kyc/ocr', () => {
@@ -312,6 +333,45 @@ describe('Phase 4: E-KYC Zero-Knowledge Identity Engine Specification', () => {
       );
       expect(decrypted.nidNumber).toBe(nid);
       expect(decrypted.fullNameEnglish).toBe('FARHANA RAHMAN');
+    });
+
+    it('should cache demographics in Redis for 15 minutes across retry attempts and clear on success', async () => {
+      const { user, token } = await createUserAndToken();
+      const nid = '19942691234567890';
+      const nidHash = computeNidHash(nid);
+      const dob = '1994-05-18';
+
+      // 1. First attempt fails on selfie mismatch
+      const res1 = await request(app)
+        .post('/api/v1/kyc/verify-nid')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          nidNumber: nid,
+          dob,
+          liveSelfieBase64: 'mismatch_selfie'
+        });
+
+      expect(res1.status).toBe(422);
+
+      // Verify demographics are cached in Redis
+      const cached = await redis.get(`kyc:demographics:${user._id}:${nidHash}`);
+      expect(cached).toBeDefined();
+      const parsed = JSON.parse(cached!);
+      expect(parsed.fullNameEnglish).toBe('FARHANA RAHMAN');
+
+      // 2. Second attempt succeeds and cleans up the session cache
+      const res2 = await request(app)
+        .post('/api/v1/kyc/verify-nid')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          nidNumber: nid,
+          dob,
+          liveSelfieBase64: 'valid_match_selfie'
+        });
+
+      expect(res2.status).toBe(200);
+      const cleanedCache = await redis.get(`kyc:demographics:${user._id}:${nidHash}`);
+      expect(cleanedCache).toBeNull();
     });
   });
 

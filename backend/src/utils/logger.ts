@@ -17,29 +17,12 @@ const SENSITIVE_KEYS = new Set([
 ]);
 
 const redactSensitiveData = winston.format((info) => {
-  const redact = (obj: any): any => {
-    if (obj === null || typeof obj !== 'object') {
-      return obj;
+  for (const [key, value] of Object.entries(info)) {
+    if (typeof key === 'string' && SENSITIVE_KEYS.has(key.toLowerCase())) {
+      info[key] = '[REDACTED]';
     }
-
-    if (Array.isArray(obj)) {
-      return obj.map(redact);
-    }
-
-    const cleaned: Record<string, any> = {};
-    for (const [key, value] of Object.entries(obj)) {
-      if (SENSITIVE_KEYS.has(key.toLowerCase())) {
-        cleaned[key] = '[REDACTED]';
-      } else if (typeof value === 'object') {
-        cleaned[key] = redact(value);
-      } else {
-        cleaned[key] = value;
-      }
-    }
-    return cleaned;
-  };
-
-  return redact(info);
+  }
+  return info;
 });
 
 const logFormat = winston.format.combine(
@@ -61,7 +44,7 @@ const devFormat = winston.format.combine(
 );
 
 export const logger = winston.createLogger({
-  level: env.NODE_ENV === 'development' ? 'debug' : 'info',
+  level: 'info',
   format: logFormat,
   defaultMeta: { service: 'becha-kena-backend' },
   transports: [

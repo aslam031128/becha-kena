@@ -1,0 +1,1781 @@
+{
+  "info": {
+    "_postman_id": "33152081-0cdf-49b1-80a8-d4ec1a0f3409",
+    "name": "Becha-Kena Marketplace API (Official)",
+    "description": "Complete Postman Collection for Becha-Kena: Bangladesh's First NID-Verified C2C Resale Marketplace.\nIncludes all endpoints from Phase 0 to Phase 12.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "00. Health & Meta",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          },
+          "id": "7c8fedca-6a49-495d-8b8d-854ff6082fa0"
+        },
+        {
+          "name": "API V1 Metadata",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1"
+              ]
+            }
+          },
+          "id": "bf228ccb-4626-4bfb-8012-057a3efa2c0c"
+        }
+      ],
+      "id": "71f2d3c6-96a7-4e27-8135-485b7a28d9d0"
+    },
+    {
+      "name": "01. Auth & Device Security",
+      "item": [
+        {
+          "name": "Request OTP",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+8801712345678\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/request-otp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "request-otp"
+              ]
+            }
+          },
+          "id": "dabcdc72-097f-4f66-904f-292142405147"
+        },
+        {
+          "name": "Verify OTP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.accessToken) {",
+                  "        pm.environment.set('accessToken', json.data.accessToken);",
+                  "        console.log('AccessToken captured successfully');",
+                  "    }",
+                  "    if (json.data && json.data.user) {",
+                  "        pm.environment.set('currentUserId', json.data.user.id || json.data.user._id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Device-UUID",
+                "value": "{{deviceUUID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+8801712345678\",\n  \"otp\": \"123456\",\n  \"deviceUUID\": \"{{deviceUUID}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/verify-otp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "verify-otp"
+              ]
+            }
+          },
+          "id": "79567620-39b0-4ccf-81af-88bccf91821b"
+        },
+        {
+          "name": "Refresh Access Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.accessToken) {",
+                  "        pm.environment.set('accessToken', json.data.accessToken);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Device-UUID",
+                "value": "{{deviceUUID}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "refresh"
+              ]
+            }
+          },
+          "id": "7252668f-1ddf-4af8-8713-a6c61329ad03"
+        },
+        {
+          "name": "Get Auth Me Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "id": "8f18d6be-e964-4c17-a52c-953fc0c19cd0"
+        },
+        {
+          "name": "Logout Citizen",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Device-UUID",
+                "value": "{{deviceUUID}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "logout"
+              ]
+            }
+          },
+          "id": "8b86035d-a973-442a-9d2f-2164de7058f1"
+        }
+      ],
+      "id": "16a92556-61e9-43de-8c5f-a9b8cff712a0"
+    },
+    {
+      "name": "02. Users & Profile",
+      "item": [
+        {
+          "name": "Get Current Citizen Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "me"
+              ]
+            }
+          },
+          "id": "8a0540f7-5c1d-4ecf-8849-f5b72a18eec6"
+        },
+        {
+          "name": "Get User Reviews (Public)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/{{targetUserId}}/reviews?page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "{{targetUserId}}",
+                "reviews"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "id": "89a6a0b8-3afc-4966-a17c-1313762473e6"
+        }
+      ],
+      "id": "48758303-b015-48e5-bd40-91e079a1bb1e"
+    },
+    {
+      "name": "03. Identity & E-KYC",
+      "item": [
+        {
+          "name": "NID Optical Character Recognition (OCR)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nidFrontKey\": \"private/kyc/temp_front.webp\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/kyc/ocr",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "kyc",
+                "ocr"
+              ]
+            }
+          },
+          "id": "2d719bf2-632c-497f-b1ee-3af9a5639df7"
+        },
+        {
+          "name": "Verify NID & Biometrics",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nidNumber\": \"19942691234567890\",\n  \"dob\": \"1994-08-15\",\n  \"selfieKey\": \"private/kyc/selfie_sample.webp\",\n  \"nameBangla\": \"আহমেদ করিম\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/kyc/verify-nid",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "kyc",
+                "verify-nid"
+              ]
+            }
+          },
+          "id": "c957bba8-cf49-472c-bcb6-8afdaaf9f8af"
+        },
+        {
+          "name": "Get KYC Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/kyc/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "kyc",
+                "status"
+              ]
+            }
+          },
+          "id": "910cbcaf-343b-4bde-b548-b5440954f0d9"
+        },
+        {
+          "name": "Rebind Lost Phone / SIM Recovery",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nidNumber\": \"19942691234567890\",\n  \"dob\": \"1994-08-15\",\n  \"newPhone\": \"+8801799887766\",\n  \"otp\": \"123456\",\n  \"selfieKey\": \"private/kyc/selfie_rebind.webp\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/kyc/rebind-phone",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "kyc",
+                "rebind-phone"
+              ]
+            }
+          },
+          "id": "e942ee95-2fac-49dc-8f61-50a51335be4a"
+        },
+        {
+          "name": "Verify New Device Footprint",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"newDeviceUUID\": \"device-uuid-secondary\",\n  \"selfieKey\": \"private/kyc/selfie_new_device.webp\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/kyc/verify-new-device",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "kyc",
+                "verify-new-device"
+              ]
+            }
+          },
+          "id": "cd215cb5-012d-433d-9c16-3719194e04c9"
+        }
+      ],
+      "id": "37202e93-6413-4005-9d5f-24ffc9608090"
+    },
+    {
+      "name": "04. Media Direct Uploads",
+      "item": [
+        {
+          "name": "Request S3 Presigned Upload URL",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fileName\": \"iphone15pro.webp\",\n  \"fileType\": \"image/webp\",\n  \"fileSize\": 1540000,\n  \"context\": \"listing_image\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/uploads/presigned-url",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "uploads",
+                "presigned-url"
+              ]
+            }
+          },
+          "id": "1a51a259-c35d-49ce-bc7c-e47d54268699"
+        },
+        {
+          "name": "Confirm Direct S3 Upload",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"key\": \"public/listings/sample-user-id/sample-file.webp\",\n  \"context\": \"listing_image\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/uploads/confirm",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "uploads",
+                "confirm"
+              ]
+            }
+          },
+          "id": "48771ef1-6bd4-4bd5-b083-eff624768158"
+        },
+        {
+          "name": "Get Private Document Read URL",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/uploads/private-url?key=private/kyc/sample_nid_front.webp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "uploads",
+                "private-url"
+              ],
+              "query": [
+                {
+                  "key": "key",
+                  "value": "private/kyc/sample_nid_front.webp"
+                }
+              ]
+            }
+          },
+          "id": "c5dd6f3c-f655-4239-a1a2-810f4fbf64b6"
+        }
+      ],
+      "id": "2361b8b9-6cb2-43fe-a6c1-665f2ae6e121"
+    },
+    {
+      "name": "05. Listings Engine",
+      "item": [
+        {
+          "name": "Browse Listings (Public / Search / Geo)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/listings?division=Dhaka&category=electronics&minPrice=1000&maxPrice=200000&page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "listings"
+              ],
+              "query": [
+                {
+                  "key": "division",
+                  "value": "Dhaka"
+                },
+                {
+                  "key": "category",
+                  "value": "electronics"
+                },
+                {
+                  "key": "minPrice",
+                  "value": "1000"
+                },
+                {
+                  "key": "maxPrice",
+                  "value": "200000"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "id": "a0db0376-54a2-4762-b3e0-b9b5e59c03c9"
+        },
+        {
+          "name": "Create New Listing",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && (json.data.id || json.data._id || json.data.listingId)) {",
+                  "        var id = json.data.id || json.data._id || json.data.listingId;",
+                  "        pm.environment.set('listingId', id);",
+                  "        console.log('Saved listingId:', id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Apple iPhone 15 Pro 256GB Natural Titanium\",\n  \"description\": \"Used with care for 3 months. Battery health 99%. Comes with original cable and box.\",\n  \"price\": 125000,\n  \"condition\": \"like_new\",\n  \"category\": \"electronics\",\n  \"location\": {\n    \"division\": \"Dhaka\",\n    \"thana\": \"Dhanmondi\",\n    \"coordinates\": [\n      90.3742,\n      23.7461\n    ]\n  },\n  \"imageUrls\": [\n    \"https://cdn.becha-kena.com/listings/sample_iphone_1.webp\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/listings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "listings"
+              ]
+            }
+          },
+          "id": "6915f67a-86b9-4eeb-8c60-8a0d079945dd"
+        },
+        {
+          "name": "Get Single Listing Details",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/listings/{{listingId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "listings",
+                "{{listingId}}"
+              ]
+            }
+          },
+          "id": "4de97be9-8770-4bce-a6aa-01cd2ef24b21"
+        },
+        {
+          "name": "Update Listing",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 120000,\n  \"description\": \"Price dropped! Urgent sale.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/listings/{{listingId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "listings",
+                "{{listingId}}"
+              ]
+            }
+          },
+          "id": "44937f1c-42b9-424f-a6a0-2b68b157d14c"
+        },
+        {
+          "name": "Update Listing Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/listings/{{listingId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "listings",
+                "{{listingId}}",
+                "status"
+              ]
+            }
+          },
+          "id": "f7edbacf-8fd6-49f8-b223-75e04c4c7523"
+        },
+        {
+          "name": "Renew 30-Day Listing Lifecycle",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/listings/{{listingId}}/renew",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "listings",
+                "{{listingId}}",
+                "renew"
+              ]
+            }
+          },
+          "id": "b8b55ad7-a27a-47b8-a974-3593f4b5039b"
+        },
+        {
+          "name": "Get My Active Listings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/listings/my-listings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "listings",
+                "my-listings"
+              ]
+            }
+          },
+          "id": "1acdb2d4-3f4c-45e5-a75d-f33dea1044dc"
+        },
+        {
+          "name": "Reveal Seller Phone Number",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/listings/{{listingId}}/reveal-phone",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "listings",
+                "{{listingId}}",
+                "reveal-phone"
+              ]
+            }
+          },
+          "id": "65e650d7-ff0d-4096-b41a-e7daad0ec766"
+        },
+        {
+          "name": "Delete / Soft-Archive Listing",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/listings/{{listingId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "listings",
+                "{{listingId}}"
+              ]
+            }
+          },
+          "id": "a867813c-ceb6-42e4-b24d-83bbebe220ac"
+        }
+      ],
+      "id": "7beb9309-07ff-4d65-ace8-1456f815aeb7"
+    },
+    {
+      "name": "06. Favorites & Wishlist",
+      "item": [
+        {
+          "name": "Get My Favorites List",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/favorites",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "favorites"
+              ]
+            }
+          },
+          "id": "06aaa8c4-2d96-4be0-bba5-ed6add2f6955"
+        },
+        {
+          "name": "Add Listing to Favorites",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/favorites/{{listingId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "favorites",
+                "{{listingId}}"
+              ]
+            }
+          },
+          "id": "209aabd0-2198-4ff9-b2ca-d1f4f62bcc66"
+        },
+        {
+          "name": "Remove Listing from Favorites",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/favorites/{{listingId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "favorites",
+                "{{listingId}}"
+              ]
+            }
+          },
+          "id": "330d323a-2115-4c05-b5e5-72d29b830ff4"
+        }
+      ],
+      "id": "7dd08291-4e0b-4ae4-a83c-f4ad8c4455b6"
+    },
+    {
+      "name": "07. Conversations & Chat",
+      "item": [
+        {
+          "name": "Initiate Conversation on Listing",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && (json.data.conversationId || json.data._id || json.data.id)) {",
+                  "        var id = json.data.conversationId || json.data._id || json.data.id;",
+                  "        pm.environment.set('conversationId', id);",
+                  "        console.log('Saved conversationId:', id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"listingId\": \"{{listingId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/chats/initiate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "chats",
+                "initiate"
+              ]
+            }
+          },
+          "id": "14796721-e6e8-4d75-8db4-2e9b0e119605"
+        },
+        {
+          "name": "List My Inbox Conversations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/chats",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "chats"
+              ]
+            }
+          },
+          "id": "a8bde7ec-5e2c-4aa7-a62c-29d2461e32f3"
+        },
+        {
+          "name": "Get Conversation Messages",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/chats/{{conversationId}}/messages?page=1&limit=50",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "chats",
+                "{{conversationId}}",
+                "messages"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            }
+          },
+          "id": "8d10aa6d-c594-43d6-9038-9522002fb008"
+        },
+        {
+          "name": "Send In-App Message (Scam Shield & Link Stripper)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Hello, is this phone still available? Can we meet in Dhanmondi?\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/chats/{{conversationId}}/messages",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "chats",
+                "{{conversationId}}",
+                "messages"
+              ]
+            }
+          },
+          "id": "e0405d4d-fb37-4909-b620-1fbd213b2104"
+        }
+      ],
+      "id": "6f237fe0-f659-4c61-8f35-79cc13340889"
+    },
+    {
+      "name": "08. Formal Offer Negotiation",
+      "item": [
+        {
+          "name": "Submit Binding Offer (Buyer)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && (json.data.offerId || json.data._id || json.data.id)) {",
+                  "        var id = json.data.offerId || json.data._id || json.data.id;",
+                  "        pm.environment.set('offerId', id);",
+                  "        console.log('Saved offerId:', id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 115000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/chats/{{conversationId}}/offers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "chats",
+                "{{conversationId}}",
+                "offers"
+              ]
+            }
+          },
+          "id": "2408506a-855b-4d92-b1fd-e45fb38c990f"
+        },
+        {
+          "name": "Get Thread Negotiation Offers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/chats/{{conversationId}}/offers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "chats",
+                "{{conversationId}}",
+                "offers"
+              ]
+            }
+          },
+          "id": "0865bdb1-5e8b-46b9-a5db-26616e903d6a"
+        },
+        {
+          "name": "Submit Counter Offer (Seller)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 120000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/chats/{{conversationId}}/offers/{{offerId}}/counter",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "chats",
+                "{{conversationId}}",
+                "offers",
+                "{{offerId}}",
+                "counter"
+              ]
+            }
+          },
+          "id": "e47ac1b6-45e1-43fe-9683-61af8ffa3d14"
+        },
+        {
+          "name": "Accept Formal Offer (Seller)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/chats/{{conversationId}}/offers/{{offerId}}/accept",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "chats",
+                "{{conversationId}}",
+                "offers",
+                "{{offerId}}",
+                "accept"
+              ]
+            }
+          },
+          "id": "13eeaf3f-8eb9-49e8-b502-e31dbfa12c81"
+        },
+        {
+          "name": "Decline Formal Offer",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/chats/{{conversationId}}/offers/{{offerId}}/decline",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "chats",
+                "{{conversationId}}",
+                "offers",
+                "{{offerId}}",
+                "decline"
+              ]
+            }
+          },
+          "id": "31039162-39e2-4ff2-90d0-af453ab2a831"
+        }
+      ],
+      "id": "05b4db59-7e7a-48c4-ba86-51b46c9bdd92"
+    },
+    {
+      "name": "09. Deals & Bilateral Reviews",
+      "item": [
+        {
+          "name": "Close Deal from Accepted Offer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && (json.data.dealId || json.data._id)) {",
+                  "        var id = json.data.dealId || json.data._id;",
+                  "        pm.environment.set('dealId', id);",
+                  "        console.log('Saved dealId:', id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"offerId\": \"{{offerId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/deals",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "deals"
+              ]
+            }
+          },
+          "id": "a07e19a4-97e0-4eca-82fe-3303103f7a67"
+        },
+        {
+          "name": "Direct Sale Deal Closure (Fallback)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && (json.data.dealId || json.data._id)) {",
+                  "        pm.environment.set('dealId', json.data.dealId || json.data._id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"listingId\": \"{{listingId}}\",\n  \"buyerId\": \"{{targetUserId}}\",\n  \"finalPrice\": 120000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/deals/direct-sale",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "deals",
+                "direct-sale"
+              ]
+            }
+          },
+          "id": "ed712943-6e90-4934-b476-d4a15ed40327"
+        },
+        {
+          "name": "Get Immutable Deal Receipt",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/deals/{{dealId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "deals",
+                "{{dealId}}"
+              ]
+            }
+          },
+          "id": "3035bc55-8325-4757-ab25-f2432aff0126"
+        },
+        {
+          "name": "Submit Bilateral Review (via Deal Route)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 5,\n  \"tags\": [\n    \"punctual\",\n    \"item_as_described\",\n    \"friendly_communication\"\n  ],\n  \"comment\": \"Excellent seller! Phone was exactly as advertised.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/deals/{{dealId}}/reviews",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "deals",
+                "{{dealId}}",
+                "reviews"
+              ]
+            }
+          },
+          "id": "86891a9a-67e0-4423-be76-ab6cd074196f"
+        },
+        {
+          "name": "Submit Bilateral Review (via Reviews Route)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dealId\": \"{{dealId}}\",\n  \"rating\": 5,\n  \"tags\": [\n    \"punctual\",\n    \"quick_payment\"\n  ],\n  \"comment\": \"Prompt buyer, smooth transaction.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reviews",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reviews"
+              ]
+            }
+          },
+          "id": "7695ea2a-0405-4fe7-a6a6-4305d403bf3b"
+        }
+      ],
+      "id": "4e29a5ec-9528-4fe3-8c54-fbe5dac7513e"
+    },
+    {
+      "name": "10. Community Safety & Reports",
+      "item": [
+        {
+          "name": "Flag / Report Entity (Listing, User, Chat)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.reportId) {",
+                  "        pm.environment.set('reportId', json.data.reportId);",
+                  "        console.log('Saved reportId:', json.data.reportId);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"entityType\": \"listing\",\n  \"entityId\": \"{{listingId}}\",\n  \"reason\": \"scam_advance_demanded\",\n  \"details\": \"Seller demanded 2000 BDT advance courier charge via bKash in inbox.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reports",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reports"
+              ]
+            }
+          },
+          "id": "88b03f05-d191-4396-b90d-f7a91bf85aad"
+        },
+        {
+          "name": "Get My Submitted Reports",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reports/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reports",
+                "me"
+              ]
+            }
+          },
+          "id": "a4d98d99-39af-43d0-a573-6f6463d39680"
+        }
+      ],
+      "id": "54ebf552-5024-4621-ad58-a93b947cc7fd"
+    },
+    {
+      "name": "11. Legal Disputes (Police GD)",
+      "item": [
+        {
+          "name": "File Police GD Dispute (Buyer Only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.disputeId) {",
+                  "        pm.environment.set('disputeId', json.data.disputeId);",
+                  "        console.log('Saved disputeId:', json.data.disputeId);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gdNumber\": \"GD-2026-9812\",\n  \"thanaName\": \"Dhanmondi Model Thana\",\n  \"gdFilingDate\": \"2026-10-23\",\n  \"gdDocumentUrl\": \"https://cdn.becha-kena.com/disputes/gd_doc_stamped_9812.webp\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/deals/{{dealId}}/disputes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "deals",
+                "{{dealId}}",
+                "disputes"
+              ]
+            }
+          },
+          "id": "6e355973-7615-41a3-b47e-82b5703a6f2d"
+        },
+        {
+          "name": "Get Dispute Status & Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/deals/{{dealId}}/dispute",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "deals",
+                "{{dealId}}",
+                "dispute"
+              ]
+            }
+          },
+          "id": "782fcb87-5e20-4a58-9ad9-6bd970ebfecb"
+        }
+      ],
+      "id": "ff894d2c-be16-48a3-8dbd-bec2222de9e6"
+    },
+    {
+      "name": "12. Admin & Dual-Approval Ban",
+      "item": [
+        {
+          "name": "Manual KYC Review Queue (Moderator)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/kyc/queue?page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "kyc",
+                "queue"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "id": "3a011c0e-94fb-40a0-991d-b07b591bbc17"
+        },
+        {
+          "name": "Approve Manual KYC (Moderator)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/kyc/{{targetUserId}}/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "kyc",
+                "{{targetUserId}}",
+                "approve"
+              ]
+            }
+          },
+          "id": "c7437598-a6e2-44b8-b793-9fb89e2dc846"
+        },
+        {
+          "name": "Reject Manual KYC (Moderator)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Document edges cropped, please retake in well-lit room.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/kyc/{{targetUserId}}/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "kyc",
+                "{{targetUserId}}",
+                "reject"
+              ]
+            }
+          },
+          "id": "37598628-a546-4705-a912-1cc38d9c4e81"
+        },
+        {
+          "name": "Community Reports Queue (Moderator)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/reports?status=pending&page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "reports"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "pending"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "id": "6e8f40d4-66d1-4ec1-813f-36cdb92d38e1"
+        },
+        {
+          "name": "Triage Report Action (Moderator)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"quarantine\",\n  \"notes\": \"Confirmed advance fee solicitation in chat logs.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/reports/{{reportId}}/action",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "reports",
+                "{{reportId}}",
+                "action"
+              ]
+            }
+          },
+          "id": "85cb8f59-93a7-4ab3-9045-7d719aa5b402"
+        },
+        {
+          "name": "Active Legal Disputes Queue (Moderator)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/disputes?status=pending&page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "disputes"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "pending"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "id": "4085afe5-f967-47cd-a868-d1d943a0a9de"
+        },
+        {
+          "name": "Resolve Dispute (Super Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resolutionAction\": \"seller_banned\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/disputes/{{disputeId}}/resolve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "disputes",
+                "{{disputeId}}",
+                "resolve"
+              ]
+            }
+          },
+          "id": "da096d45-441f-4f43-bcce-bc9b5b5e8d22"
+        },
+        {
+          "name": "Step 1: Propose Permanent Ban (Moderator)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Confirmed stolen IMEI sale and off-platform courier scam.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/users/{{targetUserId}}/propose-ban",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users",
+                "{{targetUserId}}",
+                "propose-ban"
+              ]
+            }
+          },
+          "id": "cf8dd400-cc2b-4c1a-a0f9-0a08e88303b8"
+        },
+        {
+          "name": "Step 2: Confirm Permanent Ban & Blacklist (Super Admin)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/users/{{targetUserId}}/confirm-ban",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users",
+                "{{targetUserId}}",
+                "confirm-ban"
+              ]
+            }
+          },
+          "id": "f29e8c8a-51b2-4385-b003-fa068bf23504"
+        },
+        {
+          "name": "Phone Reveal Scraping Bot Audit (Super Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/audits/phone-reveals",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "audits",
+                "phone-reveals"
+              ]
+            }
+          },
+          "id": "bb7913b4-7f42-4ea6-9c30-3437c5ce81c5"
+        }
+      ],
+      "id": "f90c378d-3a67-47a8-84e6-e8ed37d7fecb"
+    }
+  ]
+}

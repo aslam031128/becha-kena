@@ -4,6 +4,7 @@ import { getRedisClient } from '../config/redis.js';
 import { User } from '../models/user.model.js';
 import { NidBlacklist } from '../models/nidBlacklist.model.js';
 import { kycService } from '../services/kyc/KYCProviderFactory.js';
+import { NidDemographics } from '../services/kyc/IKYCProvider.js';
 import { computeNidHash } from '../utils/hmac.js';
 import { encryptData } from '../utils/kms.js';
 import { normalizeBdPhone } from '../utils/phone.js';
@@ -67,12 +68,8 @@ export const ocr = async (
 
 /**
  * POST /api/v1/kyc/verify-nid
- * Primary composite fast E-KYC flow:
- * Step 1: Compute nidHash, check collision against nid_blacklists (403) and users (409).
- * Step 2: Demographic verification with Election Commission Porichoy records.
- * Step 3: Biometric face match (reject if confidence < 85%).
- * Step 4: Encrypt legal demographics with AES-256-GCM KMS and save profile.
- * Max 3 attempts enforced before routing to manual review (429).
+ * Submits NID data and biometric selfie for Admin Manual Review queue.
+ * (Porichoy automated API is currently disabled; manual review workflow enabled)
  * Access: Authenticated
  */
 export const verifyNid = async (
@@ -86,9 +83,9 @@ export const verifyNid = async (
       throw new UnauthorizedError('Authentication is required to perform KYC verification.');
     }
 
-    const { nidNumber, dob, liveSelfieBase64, liveSelfieKey } = req.body;
-    const cleanNid = nidNumber.trim();
-    const cleanDob = dob.trim();
+    const { nidNumber, dob, frontImageKey, backImageKey, liveSelfieBase64, liveSelfieKey } = req.body;
+    const cleanNid = (nidNumber || '').trim();
+    const cleanDob = (dob || '').trim();
 
     const user = await User.findById(userId);
     if (!user) {
@@ -103,111 +100,64 @@ export const verifyNid = async (
       );
     }
 
-    // Check if attempts quota exhausted
-    if (user.kycAttempts >= MAX_KYC_ATTEMPTS) {
-      user.kycStatus = KycStatus.MANUAL_REVIEW;
-      await user.save();
-      throw new RateLimitError(
-        'Maximum verification attempts exhausted (3). Your application is routed to manual review.',
-        ErrorCodes.KYC_ATTEMPTS_EXHAUSTED,
-        { remainingAttempts: 0 }
-      );
-    }
+    // Step 1: Zero-knowledge HMAC collision check if NID provided
+    if (cleanNid) {
+      const nidHash = computeNidHash(cleanNid);
 
-    // Step 1: Zero-knowledge HMAC collision check
-    const nidHash = computeNidHash(cleanNid);
-
-    // 1a. Check if NID is blacklisted
-    const blacklisted = await NidBlacklist.findOne({ nidHash });
-    if (blacklisted) {
-      throw new ForbiddenError(
-        'This National ID is permanently barred due to confirmed fraudulent activity.',
-        ErrorCodes.NID_BLACKLISTED
-      );
-    }
-
-    // 1b. Check if NID is already tied to another registered citizen
-    const existingCitizen = await User.findOne({
-      nidHash,
-      _id: { $ne: user._id }
-    });
-    if (existingCitizen) {
-      throw new ConflictError(
-        'This National ID is already registered to another account.',
-        ErrorCodes.NID_ALREADY_REGISTERED
-      );
-    }
-
-    // Step 2: Verify demographics against official Election Commission records
-    const demographics = await kycService.verifyDemographics(cleanNid, cleanDob);
-
-    // Step 3: Biometric face match (EC photo vs live selfie)
-    const ecPhoto = demographics.ecPhotoBase64 || demographics.photoUrl || 'default_ec_photo';
-    const selfie = liveSelfieBase64 || liveSelfieKey || 'selfie_stream';
-
-    const faceMatch = await kycService.matchFace(ecPhoto, selfie);
-
-    if (!faceMatch.isMatch || faceMatch.confidenceScore < 85.0) {
-      user.kycAttempts += 1;
-
-      if (user.kycAttempts >= MAX_KYC_ATTEMPTS) {
-        user.kycStatus = KycStatus.MANUAL_REVIEW;
-        await user.save();
-        throw new RateLimitError(
-          'Maximum verification attempts reached. Case routed to manual review queue.',
-          ErrorCodes.KYC_ATTEMPTS_EXHAUSTED,
-          { remainingAttempts: 0 }
+      // Check if NID is blacklisted
+      const blacklisted = await NidBlacklist.findOne({ nidHash });
+      if (blacklisted) {
+        throw new ForbiddenError(
+          'This National ID is permanently barred due to confirmed fraudulent activity.',
+          ErrorCodes.NID_BLACKLISTED
         );
       }
 
-      user.kycStatus = KycStatus.RETAKE_REQUIRED;
-      await user.save();
+      // Check if NID is already tied to another registered citizen
+      const existingCitizen = await User.findOne({
+        nidHash,
+        _id: { $ne: user._id },
+        isNidVerified: true
+      });
+      if (existingCitizen) {
+        throw new ConflictError(
+          'This National ID is already registered to another verified account.',
+          ErrorCodes.NID_ALREADY_REGISTERED
+        );
+      }
 
-      throw new UnprocessableEntityError(
-        'Facial match failed. Please retake your selfie in well-lit conditions.',
-        ErrorCodes.BIOMETRIC_FACE_MISMATCH,
-        { remainingAttempts: MAX_KYC_ATTEMPTS - user.kycAttempts }
-      );
+      user.nidHash = nidHash;
     }
 
-    // Step 4: Success - Envelope encrypt legal profile with KMS
-    const encryptedNidData = encryptData({
-      nidNumber: cleanNid,
-      dob: cleanDob,
-      fullNameEnglish: demographics.fullNameEnglish,
-      fullNameBangla: demographics.fullNameBangla,
-      fatherName: demographics.fatherName,
-      motherName: demographics.motherName,
-      presentAddress: demographics.presentAddress,
-      permanentAddress: demographics.permanentAddress,
-      verifiedAt: new Date().toISOString()
-    });
+    // Step 2: Route directly to Admin Manual Review Queue
+    user.kycStatus = KycStatus.MANUAL_REVIEW;
+    user.isNidVerified = false;
+    user.kycAttempts = (user.kycAttempts || 0) + 1;
 
-    user.nidHash = nidHash;
-    user.encryptedNidData = encryptedNidData;
-    user.isNidVerified = true;
-    user.kycStatus = KycStatus.VERIFIED;
-    user.kycAttempts = 0;
-
-    // Prefill display name if user currently has default generated name
-    if (demographics.fullNameEnglish && (!user.displayName || user.displayName.startsWith('Citizen '))) {
-      user.displayName = demographics.fullNameEnglish;
-    }
+    user.kycDocuments = {
+      frontImageKey: frontImageKey || null,
+      backImageKey: backImageKey || null,
+      liveSelfieKey: liveSelfieKey || null,
+      nidNumber: cleanNid || null,
+      dob: cleanDob || null,
+      submittedAt: new Date(),
+      rejectionReason: null
+    };
 
     await user.save();
 
-    logger.info(`✅ Citizen ${user._id} verified successfully with zero-knowledge NID hash`);
+    logger.info(`📋 Citizen ${user._id} submitted KYC documents for Admin Manual Review queue`);
 
     sendSuccess(
       res,
       {
-        isNidVerified: true,
-        kycStatus: 'verified',
-        maskedLegalName: maskLegalName(demographics.fullNameEnglish),
-        verifiedAt: user.updatedAt
+        isNidVerified: false,
+        status: 'manual_review',
+        kycStatus: KycStatus.MANUAL_REVIEW,
+        submittedAt: user.kycDocuments.submittedAt
       },
       200,
-      'Congratulations! Your National ID has been successfully verified.'
+      'আপনার জাতীয় পরিচয়পত্র ও সেলফি ম্যানুয়াল পর্যালোচনার জন্য জমা হয়েছে। অ্যাডমিন রিভিউ সম্পন্ন হলে আপনাকে জানানো হবে।'
     );
   } catch (error) {
     next(error);
@@ -230,7 +180,7 @@ export const getStatus = async (
       throw new UnauthorizedError('Authentication is required.');
     }
 
-    const user = await User.findById(userId).select('kycStatus isNidVerified kycAttempts updatedAt');
+    const user = await User.findById(userId).select('kycStatus isNidVerified kycAttempts kycDocuments updatedAt');
     if (!user) {
       throw new NotFoundError('Citizen account not found.');
     }
@@ -243,7 +193,8 @@ export const getStatus = async (
         kycStatus: user.kycStatus,
         isNidVerified: user.isNidVerified,
         attemptsUsed: user.kycAttempts,
-        submittedAt: user.updatedAt,
+        submittedAt: user.kycDocuments?.submittedAt || user.updatedAt,
+        rejectionReason: user.kycDocuments?.rejectionReason || null,
         ...(isManualReview && {
           slaRemainingMinutes: 120,
           slaWorkingHours: '9:00 AM - 9:00 PM BST'

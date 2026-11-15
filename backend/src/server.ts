@@ -18,28 +18,43 @@ const bootstrap = async (): Promise<void> => {
     // 2. Initialize Real-Time WebSockets
     initSocketServer(server);
 
-    // 3. Connect to Infrastructure Services
-    if (env.NODE_ENV !== 'test') {
-      try {
-        await connectDatabase();
-      } catch (err: any) {
-        logger.error(`Database connection deferred: ${err.message}`);
-      }
-
-      try {
-        await connectRedis();
-        await initQueues();
-      } catch (err: any) {
-        logger.error(`Redis or Queue initialization deferred: ${err.message}`);
-      }
-    }
-
-    // 4. Start Listening
+    // 3. Start Listening
     server.listen(env.PORT, () => {
       logger.info(`🌐 Becha-Kena Server running in [${env.NODE_ENV}] mode on port ${env.PORT}`);
       logger.info(`👉 Health Check: http://localhost:${env.PORT}/health`);
       logger.info(`👉 API Base:     http://localhost:${env.PORT}/api/v1`);
     });
+
+    // 4. Connect to Infrastructure Services
+    if (env.NODE_ENV !== 'test') {
+      try {
+        await connectDatabase();
+      } catch (err: any) {
+        logger.warn(`⚠️ Database connection deferred: ${err.message}`);
+      }
+
+      try {
+        const client = await connectRedis();
+        if (client.status === 'ready') {
+          await initQueues();
+        } else {
+          client.once('ready', async () => {
+            try {
+              await initQueues();
+            } catch (qErr: any) {
+              logger.error(`Failed to init queues on Redis ready: ${qErr.message}`);
+            }
+          });
+          if (env.NODE_ENV === 'production') {
+            logger.warn('⚠️ Redis not yet ready. BullMQ queues will initialize once Redis connects.');
+          }
+        }
+      } catch (err: any) {
+        if (env.NODE_ENV === 'production') {
+          logger.warn(`⚠️ Redis connection deferred: ${err.message}`);
+        }
+      }
+    }
 
     // 5. Graceful Shutdown Handlers
     const shutdown = async (signal: string) => {

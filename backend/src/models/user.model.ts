@@ -8,6 +8,16 @@ export interface IEncryptedNidData {
   ciphertext: string;
 }
 
+export interface IKycDocuments {
+  frontImageKey?: string | null;
+  backImageKey?: string | null;
+  liveSelfieKey?: string | null;
+  nidNumber?: string | null;
+  dob?: string | null;
+  submittedAt?: Date | null;
+  rejectionReason?: string | null;
+}
+
 export interface INotificationPreferences {
   pushEnabled: boolean;
   smsEnabled: boolean;
@@ -26,6 +36,7 @@ export interface IUser extends Document {
   isNidVerified: boolean;
   kycStatus: KycStatus;
   kycAttempts: number;
+  kycDocuments?: IKycDocuments | null;
   avatarUrl?: string | null;
   deviceUUIDs: string[];
   activeDeviceCount: number;
@@ -90,6 +101,18 @@ const UserSchema = new Schema<IUser>(
       type: Number,
       default: 0,
       min: 0
+    },
+    kycDocuments: {
+      type: {
+        frontImageKey: { type: String, default: null },
+        backImageKey: { type: String, default: null },
+        liveSelfieKey: { type: String, default: null },
+        nidNumber: { type: String, default: null },
+        dob: { type: String, default: null },
+        submittedAt: { type: Date, default: null },
+        rejectionReason: { type: String, default: null }
+      },
+      default: null
     },
     avatarUrl: {
       type: String,

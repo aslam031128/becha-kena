@@ -24,6 +24,10 @@ export const listingLifecycleQueue = new Queue<ListingLifecycleJobData>(
   }
 );
 
+listingLifecycleQueue.on('error', (err: Error) => {
+  logger.debug(`[ListingLifecycleQueue] Redis offline or reconnecting: ${err.message}`);
+});
+
 /**
  * Initializes the repeatable hourly cron job that monitors and expires 30-day listings.
  * 

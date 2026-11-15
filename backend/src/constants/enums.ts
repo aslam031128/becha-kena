@@ -115,3 +115,12 @@ export enum ReviewTag {
   FRIENDLY_COMMUNICATION = 'friendly_communication',
   QUICK_PAYMENT = 'quick_payment'
 }
+
+export enum UploadContext {
+  LISTING_IMAGE = 'listing_image',
+  LISTING_VIDEO = 'listing_video',
+  AVATAR = 'avatar',
+  NID_FRONT = 'nid_front',
+  NID_BACK = 'nid_back',
+  GD_DOCUMENT = 'gd_document'
+}

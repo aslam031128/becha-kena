@@ -5,7 +5,7 @@ import { Offer } from '../models/offer.model.js';
 import { Message } from '../models/message.model.js';
 import { OfferStatus, MessageType } from '../constants/enums.js';
 import { logger } from '../utils/logger.js';
-import { getSocketServer } from '../sockets/socketServer.js';
+import { getSocketServerOrNull } from '../sockets/socketServer.js';
 
 export const processOfferExpiration = async (
   job: Job<OfferExpirationJobData>
@@ -43,19 +43,21 @@ export const processOfferExpiration = async (
 
   // Real-time notification to the buyer and conversation room via Socket.io
   try {
-    const io = getSocketServer();
-    io.to(`conversation:${updatedOffer.conversationId}`).emit('offer:expired', {
-      offerId: updatedOffer._id,
-      conversationId: updatedOffer.conversationId,
-      status: OfferStatus.EXPIRED
-    });
+    const io = getSocketServerOrNull();
+    if (io) {
+      io.to(`conversation:${updatedOffer.conversationId}`).emit('offer:expired', {
+        offerId: updatedOffer._id,
+        conversationId: updatedOffer.conversationId,
+        status: OfferStatus.EXPIRED
+      });
 
-    io.to(`user:${updatedOffer.buyerId}`).emit('notification:offer_expired', {
-      offerId: updatedOffer._id,
-      conversationId: updatedOffer.conversationId,
-      listingId: updatedOffer.listingId,
-      message: 'Your offer has expired after 24 hours without response.'
-    });
+      io.to(`user:${updatedOffer.buyerId}`).emit('notification:offer_expired', {
+        offerId: updatedOffer._id,
+        conversationId: updatedOffer.conversationId,
+        listingId: updatedOffer.listingId,
+        message: 'Your offer has expired after 24 hours without response.'
+      });
+    }
   } catch (socketErr: any) {
     logger.debug(`[OfferExpirationWorker] Socket notification skipped: ${socketErr.message}`);
   }
@@ -78,4 +80,8 @@ offerExpirationWorker.on('completed', (job: Job) => {
 
 offerExpirationWorker.on('failed', (job: Job | undefined, err: Error) => {
   logger.error(`[OfferExpirationWorker] Job ${job?.id} failed: ${err.message}`);
+});
+
+offerExpirationWorker.on('error', (err: Error) => {
+  logger.debug(`[OfferExpirationWorker] Redis offline or reconnecting: ${err.message}`);
 });

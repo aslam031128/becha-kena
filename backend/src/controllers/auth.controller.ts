@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import mongoose from 'mongoose';
 import argon2 from 'argon2';
 import crypto from 'crypto';
 import { getRedisClient } from '../config/redis.js';
@@ -24,7 +25,9 @@ import {
 } from '../errors/index.js';
 import { ErrorCodes } from '../constants/errorCodes.js';
 import { UserRole, KycStatus } from '../constants/enums.js';
+import { env } from '../config/env.js';
 import { logger } from '../utils/logger.js';
+import { SmsService } from '../services/sms.service.js';
 
 export const OTP_TTL_SECONDS = 120;
 export const OTP_RESEND_COOLDOWN_SECONDS = 60;
@@ -43,13 +46,15 @@ export const requestOtp = async (
     const { phone } = req.body;
     const normalizedPhone = normalizeBdPhone(phone);
 
-    // 1. Check if phone is blacklisted on nid_blacklists
-    const blacklisted = await NidBlacklist.findOne({ phone: normalizedPhone });
-    if (blacklisted) {
-      throw new ForbiddenError(
-        'This mobile number is permanently blacklisted from Becha-Kena.',
-        ErrorCodes.NID_BLACKLISTED
-      );
+    // 1. Check if phone is blacklisted on nid_blacklists (when DB is connected)
+    if (mongoose.connection.readyState === 1) {
+      const blacklisted = await NidBlacklist.findOne({ phone: normalizedPhone });
+      if (blacklisted) {
+        throw new ForbiddenError(
+          'This mobile number is permanently blacklisted from Becha-Kena.',
+          ErrorCodes.NID_BLACKLISTED
+        );
+      }
     }
 
     // 2. Generate cryptographically secure 6-digit OTP
@@ -62,6 +67,17 @@ export const requestOtp = async (
     const redis = getRedisClient();
     await redis.set(`otp:${normalizedPhone}`, hashedOtp, 'EX', OTP_TTL_SECONDS);
 
+    // 5. Send OTP via configured SMS Provider (BulkSMSBD / AlphaSMS / Mock)
+    await SmsService.sendOtp(normalizedPhone, otp);
+
+    if (env.NODE_ENV === 'development') {
+      console.log('\n======================================================');
+      console.log(`🔑 [BECHA-KENA DEV OTP] Phone: ${normalizedPhone}`);
+      console.log(`👉 OTP CODE: >>> ${otp} <<<`);
+      console.log('⏳ Valid for: 120 seconds');
+      console.log('======================================================\n');
+    }
+
     logger.info(`📱 OTP requested for phone ${normalizedPhone.slice(0, 7)}**** (TTL: ${OTP_TTL_SECONDS}s)`);
 
     sendSuccess(
@@ -69,7 +85,8 @@ export const requestOtp = async (
       {
         phone: normalizedPhone,
         expiresInSeconds: OTP_TTL_SECONDS,
-        resendCooldownSeconds: OTP_RESEND_COOLDOWN_SECONDS
+        resendCooldownSeconds: OTP_RESEND_COOLDOWN_SECONDS,
+        ...(env.NODE_ENV === 'development' && { debugOtp: otp })
       },
       200,
       'OTP has been sent to your mobile number.'
@@ -110,15 +127,24 @@ export const verifyOtp = async (
     // Single-use: immediately delete verified OTP from Redis
     await redis.del(otpKey);
 
-    // Check if phone or hardware device is blacklisted
-    const blacklisted = await NidBlacklist.findOne({
-      $or: [{ phone: normalizedPhone }, { deviceUUID }]
-    });
+    // Check if phone or hardware device is blacklisted (when DB connected)
+    if (mongoose.connection.readyState === 1) {
+      const blacklisted = await NidBlacklist.findOne({
+        $or: [{ phone: normalizedPhone }, { deviceUUID }]
+      });
 
-    if (blacklisted) {
-      throw new ForbiddenError(
-        'This account or hardware device has been blacklisted.',
-        ErrorCodes.NID_BLACKLISTED
+      if (blacklisted) {
+        throw new ForbiddenError(
+          'This account or hardware device has been blacklisted.',
+          ErrorCodes.NID_BLACKLISTED
+        );
+      }
+    }
+
+    if (mongoose.connection.readyState !== 1) {
+      throw new BadRequestError(
+        'Database connection offline. Please ensure MongoDB is running or configure MONGODB_URI in backend/.env',
+        ErrorCodes.INTERNAL_SERVER_ERROR
       );
     }
 

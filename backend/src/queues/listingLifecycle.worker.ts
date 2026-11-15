@@ -49,3 +49,7 @@ listingLifecycleWorker.on('completed', (job: Job) => {
 listingLifecycleWorker.on('failed', (job: Job | undefined, err: Error) => {
   logger.error(`[ListingLifecycleWorker] Lifecycle sweep job ${job?.id} failed: ${err.message}`);
 });
+
+listingLifecycleWorker.on('error', (err: Error) => {
+  logger.debug(`[ListingLifecycleWorker] Redis offline or reconnecting: ${err.message}`);
+});

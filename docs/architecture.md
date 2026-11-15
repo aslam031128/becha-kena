@@ -507,8 +507,10 @@ All endpoints follow RESTful conventions under the prefix `/api/v1`.
 * `DELETE /api/v1/listings/:id/favorite` – Remove listing from favorites.
 * `GET /api/v1/users/me/favorites` – Fetch current user's saved listings with current price and availability status.
 
-### 5.9 File Upload Endpoints
-* `POST /api/v1/uploads/presign` – Request a time-limited AWS S3 / Cloudinary presigned upload URL for a given `fileType` and `context` (`listing_image` | `nid_front` | `nid_back` | `gd_document` | `avatar`). Direct client-to-storage upload prevents memory pressure.
+### 5.9 Direct-to-Cloud Media Upload Endpoints (Zero Server Load)
+* `POST /api/v1/uploads/presigned-url` – Request short-lived (10-min) AWS S3 presigned PUT URL for `listing_image` (5MB), `listing_video` (50MB), `avatar` (2MB), `nid_front` (5MB), `nid_back` (5MB), or `gd_document` (8MB). Direct client-to-storage upload bypasses main server memory & network.
+* `POST /api/v1/uploads/confirm` – Confirm uploaded object via S3 `HeadObjectCommand` check (verifies existence, ownership prefix, and size boundaries).
+* `GET /api/v1/uploads/private-url` – Generates 15-minute temporary signed GET URL for authorized viewing of sensitive private documents (`nid_front`, `nid_back`, `gd_document`). Private documents are never delivered via public CDN.
 
 ### 5.10 Admin & Moderator Back-Office Endpoints (`requireRole(['moderator', 'super_admin'])`)
 * `GET /api/v1/admin/kyc/queue` – Paginated list of KYC submissions in `manual_review` state with SLA aging markers (< 4 hours target).

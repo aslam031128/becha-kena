@@ -27,11 +27,12 @@ const envSchema = z.object({
     .length(64, 'KMS_SECRET_KEY must be a 64-character hex string (32 bytes) for AES-256'),
   HMAC_SALT: z.string().min(32, 'HMAC_SALT must be at least 32 characters'),
 
-  // AWS S3
+  // AWS S3 & CDN
   AWS_REGION: z.string().default('ap-southeast-1'),
   AWS_S3_BUCKET: z.string().default('becha-kena-uploads'),
   AWS_ACCESS_KEY_ID: z.string().default('mock_aws_access_key_id'),
   AWS_SECRET_ACCESS_KEY: z.string().default('mock_aws_secret_access_key'),
+  CDN_BASE_URL: z.string().default('https://cdn.becha-kena.com'),
 
   // KYC Provider
   KYC_PROVIDER: z.enum(['porichoy', 'shadhin', 'mock']).default('mock'),
@@ -39,7 +40,9 @@ const envSchema = z.object({
   PORICHOY_BASE_URL: z.string().default('https://api.porichoybd.com'),
 
   // SMS Provider
-  SMS_PROVIDER: z.enum(['alpha_sms', 'twilio', 'mock']).default('mock'),
+  SMS_PROVIDER: z.enum(['bulksmsbd', 'alpha_sms', 'twilio', 'mock']).default('mock'),
+  BULKSMSBD_API_KEY: z.string().default(''),
+  BULKSMSBD_SENDER_ID: z.string().default(''),
   ALPHA_SMS_API_KEY: z.string().default('mock_alpha_sms_api_key'),
 
   // Client Web App URL

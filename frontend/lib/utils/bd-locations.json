@@ -1,0 +1,34 @@
+{
+  "Dhaka": {
+    "Dhaka": ["Gulshan", "Banani", "Dhanmondi", "Mirpur", "Uttara", "Mohammadpur", "Motijheel", "Badda"],
+    "Gazipur": ["Gazipur Sadar", "Kaliakair", "Kapasia", "Sreepur", "Kaliganj"],
+    "Narayanganj": ["Narayanganj Sadar", "Bandar", "Rupganj", "Sonargaon", "Araihazar"]
+  },
+  "Chittagong": {
+    "Chittagong": ["Panchlaish", "Kotwali", "Khulshi", "Halishahar", "Agrabad", "Bakolia"],
+    "Cox's Bazar": ["Cox's Bazar Sadar", "Ramu", "Chakaria", "Teknaf", "Ukhia"],
+    "Comilla": ["Comilla Sadar", "Laksam", "Debidwar", "Burichang", "Chandina"]
+  },
+  "Rajshahi": {
+    "Rajshahi": ["Boalia", "Rajpara", "Motihar", "Shah Makhdum", "Paba"],
+    "Bogra": ["Bogra Sadar", "Shibganj", "Sherpur", "Sariakandi", "Dhunat"]
+  },
+  "Khulna": {
+    "Khulna": ["Khulna Sadar", "Sonadanga", "Khalishpur", "Daulatpur", "Khan Jahan Ali"],
+    "Jessore": ["Jessore Sadar", "Jhikargachha", "Sharsha", "Abhaynagar"]
+  },
+  "Sylhet": {
+    "Sylhet": ["Kotwali", "Jalalabad", "Shah Paran", "South Surma", "Osmani Nagar"],
+    "Moulvibazar": ["Moulvibazar Sadar", "Sreemangal", "Kulaura", "Barlekha"]
+  },
+  "Barisal": {
+    "Barisal": ["Kotwali", "Airport", "Kawnia", "Bakerganj", "Babuganj"]
+  },
+  "Rangpur": {
+    "Rangpur": ["Rangpur Sadar", "Badarganj", "Mithapukur", "Pirganj", "Gangachara"]
+  },
+  "Mymensingh": {
+    "Mymensingh": ["Kotwali", "Muktagachha", "Trishal", "Bhaluka", "Gafargaon"]
+  }
+}
+

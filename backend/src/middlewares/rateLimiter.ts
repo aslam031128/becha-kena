@@ -13,15 +13,19 @@ export const createRedisStore = (prefix: string): RedisStore => {
   return new RedisStore({
     sendCommand: async (...args: string[]): Promise<RedisReply> => {
       const client = getRedisClient();
-      return client.call(args[0], ...args.slice(1)) as Promise<RedisReply>;
+      try {
+        return (await client.call(args[0], ...args.slice(1))) as RedisReply;
+      } catch {
+        return 1 as unknown as RedisReply;
+      }
     },
     prefix: `rl:${prefix}:`
   });
 };
 
 const getStore = (prefix: string) => {
-  if (env.NODE_ENV === 'test') {
-    return undefined; // In test mode, fallback to fast in-memory store unless specified
+  if (env.NODE_ENV === 'test' || env.NODE_ENV === 'development') {
+    return undefined; // In test and local development, fallback to built-in fast MemoryStore
   }
   return createRedisStore(prefix);
 };

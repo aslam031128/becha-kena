@@ -51,3 +51,65 @@ export const getMyProfile = async (
     next(error);
   }
 };
+
+/**
+ * PATCH /api/v1/users/me/profile
+ * Update citizen display name or avatar URL
+ */
+export const updateProfile = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new UnauthorizedError('Authentication required', ErrorCodes.UNAUTHORIZED);
+    }
+
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      throw new NotFoundError('User profile not found', ErrorCodes.NOT_FOUND);
+    }
+
+    const { displayName, avatarUrl } = req.body;
+    if (displayName !== undefined) user.displayName = displayName;
+    if (avatarUrl !== undefined) user.avatarUrl = avatarUrl;
+    await user.save();
+
+    sendSuccess(res, user, 200, 'Profile updated successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * PATCH /api/v1/users/me/notification-preferences
+ * Update push, SMS, price drop alert preferences
+ */
+export const updateNotificationPreferences = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new UnauthorizedError('Authentication required', ErrorCodes.UNAUTHORIZED);
+    }
+
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      throw new NotFoundError('User profile not found', ErrorCodes.NOT_FOUND);
+    }
+
+    user.notificationPreferences = {
+      ...(user.notificationPreferences || {}),
+      ...req.body
+    };
+    await user.save();
+
+    sendSuccess(res, user.notificationPreferences, 200, 'Notification preferences updated successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+

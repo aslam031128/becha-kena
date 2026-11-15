@@ -23,6 +23,7 @@ export interface IListing extends Document {
   category: ListingCategory;
   location: IListingLocation;
   imageUrls: string[];
+  videoUrl?: string | null;
   status: ListingStatus;
   moderationStatus: ModerationStatus;
   isPhoneHidden: boolean;
@@ -109,6 +110,10 @@ const ListingSchema = new Schema<IListing>(
         message: 'Must provide between 1 and 8 image URLs'
       }
     },
+    videoUrl: {
+      type: String,
+      default: null
+    },
     status: {
       type: String,
       enum: Object.values(ListingStatus),
@@ -172,6 +177,7 @@ const ListingSchema = new Schema<IListing>(
 
 // Indexes
 ListingSchema.index({ 'location.coordinates': '2dsphere' });
+ListingSchema.index({ title: 'text', description: 'text' });
 ListingSchema.index({ status: 1, category: 1, createdAt: -1 });
 ListingSchema.index({ sellerId: 1, status: 1 });
 ListingSchema.index({ expiresAt: 1 });

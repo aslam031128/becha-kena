@@ -1,0 +1,9 @@
+<svg width="400" height="300" viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="300" fill="#F1F5F9"/>
+  <path d="M170 130C170 124.477 174.477 120 180 120H220C225.523 120 230 124.477 230 130V170C230 175.523 225.523 180 220 180H180C174.477 180 170 175.523 170 170V130Z" stroke="#94A3B8" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="190" cy="140" r="6" fill="#94A3B8"/>
+  <path d="M230 165L215 150L185 180" stroke="#94A3B8" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="200" y="210" fill="#64748B" font-family="system-ui, sans-serif" font-size="14" font-weight="600" text-anchor="middle">No Image Available</text>
+  <text x="200" y="230" fill="#94A3B8" font-family="system-ui, sans-serif" font-size="12" text-anchor="middle">Becha-Kena Verified</text>
+</svg>
+

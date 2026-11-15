@@ -89,3 +89,7 @@ priceDropAlertWorker.on('completed', (job: Job) => {
 priceDropAlertWorker.on('failed', (job: Job | undefined, err: Error) => {
   logger.error(`[PriceDropAlertWorker] Job ${job?.id} failed: ${err.message}`);
 });
+
+priceDropAlertWorker.on('error', (err: Error) => {
+  logger.debug(`[PriceDropAlertWorker] Redis offline or reconnecting: ${err.message}`);
+});

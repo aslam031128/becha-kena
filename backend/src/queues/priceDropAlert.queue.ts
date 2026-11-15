@@ -26,6 +26,10 @@ export const priceDropAlertQueue = new Queue<PriceDropAlertJobData>(
   }
 );
 
+priceDropAlertQueue.on('error', (err: Error) => {
+  logger.debug(`[PriceDropAlertQueue] Redis offline or reconnecting: ${err.message}`);
+});
+
 /**
  * Enqueues a debounced price drop alert.
  * 

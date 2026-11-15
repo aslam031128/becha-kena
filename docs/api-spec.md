@@ -1642,26 +1642,91 @@ Queries the progress of an active police dispute.
 ## 12. Cloud Media Direct Uploads (`/uploads`)
 
 ### 12.1 Request Presigned Upload URL
-Generates a time-limited (15-minute) AWS S3 / Cloudinary upload token and presigned URL for direct client-to-storage transfer.
+Generates a time-limited (10-minute) AWS S3 presigned PUT URL for direct client-to-storage transfer. The Main Backend Server **never** receives, proxies, or processes binary image/video payloads.
 
-* **Path:** `/api/v1/uploads/presign`
+* **Path:** `/api/v1/uploads/presigned-url`
 * **Method:** `POST`
 * **Auth Required:** `Authenticated`
 
 #### Request Body:
 ```json
 {
+  "fileName": "iphone_13_pro_side.webp",
   "fileType": "image/webp",
+  "fileSize": 2450000,
   "context": "listing_image"
 }
 ```
-*Allowed `context` enums:*
-- `listing_image`: Marketplace listing photo (Max 5MB).
-- `nid_front`: Front of NID card (Max 5MB, strict vault retention).
-- `nid_back`: Back of NID card (Max 5MB, strict vault retention).
-- `selfie_frame`: Biometric liveness camera frame (Max 3MB).
-- `gd_document`: Police GD copy (Max 8MB).
-- `avatar`: User profile picture (Max 2MB).
+
+*Allowed `context` enums, size limits, and MIME constraints:*
+- `listing_image`: Marketplace listing photo (Max 5MB; JPEG, PNG, WebP). Path: `public/listings/{userId}/...`
+- `listing_video`: Marketplace listing demonstration video (Max 50MB; MP4, WebM). Path: `public/videos/{userId}/...`
+- `avatar`: User profile picture (Max 2MB; JPEG, PNG, WebP). Path: `public/avatars/{userId}/...`
+- `nid_front`: Front of NID card (Max 5MB; JPEG, PNG, WebP). Private vault storage.
+- `nid_back`: Back of NID card (Max 5MB; JPEG, PNG, WebP). Private vault storage.
+- `gd_document`: Police GD copy (Max 8MB; JPEG, PNG, WebP, PDF). Private vault storage.
+
+#### Response `200 OK`:
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Presigned upload URL generated successfully.",
+  "data": {
+    "uploadUrl": "https://becha-kena-uploads.s3.ap-southeast-1.amazonaws.com/public/listings/6718dd2f0b7194fbc1110001/a1b2c3d4-iphone_13_pro_side.webp?X-Amz-Signature=...",
+    "objectKey": "public/listings/6718dd2f0b7194fbc1110001/a1b2c3d4-iphone_13_pro_side.webp",
+    "publicUrl": "https://cdn.becha-kena.com/public/listings/6718dd2f0b7194fbc1110001/a1b2c3d4-iphone_13_pro_side.webp",
+    "isPrivate": false,
+    "expiresInSeconds": 600,
+    "method": "PUT"
+  }
+}
+```
+
+---
+
+### 12.2 Confirm Direct S3 Upload
+Verifies that the client has successfully uploaded the file directly to object storage by performing an S3 `HeadObjectCommand` check. Validates ownership, size boundaries, and MIME type without receiving the binary data.
+
+* **Path:** `/api/v1/uploads/confirm`
+* **Method:** `POST`
+* **Auth Required:** `Authenticated`
+
+#### Request Body:
+```json
+{
+  "objectKey": "public/listings/6718dd2f0b7194fbc1110001/a1b2c3d4-iphone_13_pro_side.webp",
+  "context": "listing_image"
+}
+```
+
+#### Response `200 OK`:
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Upload confirmed successfully.",
+  "data": {
+    "objectKey": "public/listings/6718dd2f0b7194fbc1110001/a1b2c3d4-iphone_13_pro_side.webp",
+    "publicUrl": "https://cdn.becha-kena.com/public/listings/6718dd2f0b7194fbc1110001/a1b2c3d4-iphone_13_pro_side.webp",
+    "isPrivate": false,
+    "sizeBytes": 2445120,
+    "mimeType": "image/webp",
+    "confirmedAt": "2026-10-30T10:00:00.000Z"
+  }
+}
+```
+
+---
+
+### 12.3 Get Private Document Read URL
+Generates a short-lived (15-minute) pre-signed GET URL for secure access to sensitive private documents (NID front/back, Police GD copies). Public CDN URLs are strictly barred for these resources.
+
+* **Path:** `/api/v1/uploads/private-url`
+* **Method:** `GET`
+* **Auth Required:** `Authenticated` (Document owner or Moderator)
+* **Query Parameters:**
+  - `key` (string, required): S3 storage object key starting with `private/`
 
 #### Response `200 OK`:
 ```json
@@ -1669,9 +1734,7 @@ Generates a time-limited (15-minute) AWS S3 / Cloudinary upload token and presig
   "success": true,
   "statusCode": 200,
   "data": {
-    "uploadUrl": "https://becha-kena-vault.s3.ap-southeast-1.amazonaws.com/uploads/listing_abc123.webp?X-Amz-Signature=...",
-    "fileKey": "uploads/listing_abc123.webp",
-    "publicCdnUrl": "https://cdn.becha-kena.com/uploads/listing_abc123.webp",
+    "downloadUrl": "https://becha-kena-uploads.s3.ap-southeast-1.amazonaws.com/private/kyc/6718dd2f0b7194fbc1110001/sec-nid-front.webp?X-Amz-Signature=...",
     "expiresInSeconds": 900
   }
 }

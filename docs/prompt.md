@@ -341,15 +341,66 @@ interface IKYCProvider {
 
 ---
 
-### PHASE 5: Listings Engine, Media Uploads & Phone Reveal Gate
+### PHASE 5: Listings Engine, Direct-to-Cloud Media Uploads & Phone Reveal Gate
 
-**Goal:** Full marketplace CRUD with geospatial queries, bilingual search, 30-day lifecycle, image uploads, and the privacy-preserving phone reveal system.
+**Goal:** Implement full marketplace CRUD with geospatial queries, bilingual search, 30-day lifecycle, the privacy-preserving phone reveal system, and an enterprise Direct-to-Cloud media storage engine where the Main Backend Server NEVER handles image/video binary payloads.
 
-**Step 5.1 — Implement upload endpoint (see `api-spec.md` Section 12):**
+---
 
-| Endpoint | Method | Auth | What It Does |
-|---|---|---|---|
-| `/api/v1/uploads/presigned-url` | POST | Auth | Accept `{ fileName, fileType, context }`. Context enum: `listing_image`, `nid_front`, `nid_back`, `gd_document`, `avatar`. Validate MIME (`image/jpeg`, `image/png`, `image/webp`), max 5MB. Generate S3 pre-signed PUT URL (10-min expiry). Return `{ uploadUrl, publicUrl }`. |
+#### Step 5.1 — Direct-to-Cloud Media Upload Architecture (Presigned URL & Zero-Server-Load)
+
+> [!IMPORTANT]
+> **Mandatory Architectural Rule:** The Main Backend Server must **NEVER** receive, stream, proxy, buffer, or transcode image or video binary data. All media binaries must travel directly from the Frontend / Mobile App to external Object Storage (AWS S3 or S3-compatible storage) using short-lived pre-signed PUT URLs. The Main Backend handles strictly upload authorization, metadata validation, signed URL generation, upload confirmation, and database record keeping.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Client as Frontend / Mobile App
+    participant API as Main Backend Server
+    participant S3 as External Storage (AWS S3)
+    participant CDN as CloudFront CDN
+    participant Queue as BullMQ Worker
+
+    Client->>API: 1. POST /api/v1/uploads/presigned-url (metadata only: fileName, fileType, fileSize, context)
+    API-->>Client: 2. Return { uploadUrl (signed PUT), objectKey, publicUrl, isPrivate, expiresInSeconds }
+    Client->>S3: 3. Direct HTTP PUT Binary (Bypasses Main Server completely)
+    S3-->>Client: 4. 200 OK (S3 ETag confirmed)
+    Client->>API: 5. POST /api/v1/uploads/confirm (objectKey, context)
+    API->>S3: 6. HeadObjectCommand (verify existence, size & MIME)
+    API-->>Client: 7. Upload Verified & Ready for Listing / KYC
+    opt If Listing Video Uploaded
+        API->>Queue: 8. Enqueue video-processing job (thumbnail generation & compression)
+    end
+```
+
+**Step 5.1.1 — Create S3 Storage Service (`src/services/storage/s3.service.ts`):**
+- Encapsulates `@aws-sdk/client-s3` and `@aws-sdk/s3-request-presigner` (`PutObjectCommand`, `HeadObjectCommand`, `GetObjectCommand`, `DeleteObjectCommand`).
+- Enforces strict Public vs Private storage segregation:
+  - **Public Media (Listing images, Avatars, Listing videos):** Storage path `public/{context}/{userId}/{uuid}-{cleanFileName}`. Served publicly via CloudFront CDN (`env.CDN_BASE_URL` or S3 public endpoint).
+  - **Private Media (NID Front/Back, Police GD Documents):** Storage path `private/{context}/{userId}/{uuid}-{cleanFileName}`. Strictly private bucket/ACL. NEVER served via public CDN. Accessible ONLY via 15-minute time-limited signed GET URLs issued to authorized users or moderators.
+- Configurable limits & validation per context:
+  - `listing_image`: Max 5MB each. Allowed MIME: `image/jpeg`, `image/png`, `image/webp`. Max 8 images per listing.
+  - `listing_video`: Max 50MB each. Allowed MIME: `video/mp4`, `video/webm`. Max 1 video per listing.
+  - `avatar`: Max 2MB. Allowed MIME: `image/jpeg`, `image/png`, `image/webp`.
+  - `nid_front` & `nid_back`: Max 5MB each. Allowed MIME: `image/jpeg`, `image/png`, `image/webp`. Private storage.
+  - `gd_document`: Max 8MB. Allowed MIME: `image/jpeg`, `image/png`, `image/webp`, `application/pdf`. Private storage.
+- Generates pre-signed PUT URLs with 10-minute expiry (600s), binding exact `ContentType` and upload permissions.
+
+**Step 5.1.2 — Implement Upload Endpoints (see `api-spec.md` Section 12):**
+
+| # | Endpoint | Method | Auth | What It Does |
+|---|---|---|---|---|
+| 1 | `/api/v1/uploads/presigned-url` | POST | Auth | Request pre-signed PUT URL. Accept `{ fileName, fileType, fileSize, context }`. Validates MIME, extension, and size limit per context. Generates unique, unpredictable key `public/...` or `private/...`. Returns `{ uploadUrl, objectKey, publicUrl, isPrivate, expiresInSeconds: 600, method: 'PUT' }`. |
+| 2 | `/api/v1/uploads/confirm` | POST | Auth | Confirm direct S3 upload. Accept `{ objectKey, context }`. Calls S3 `HeadObjectCommand` to verify object exists, matches authenticated user's ID in path prefix, and respects size boundaries. Returns `{ objectKey, publicUrl, isPrivate, sizeBytes, mimeType, confirmedAt }`. |
+| 3 | `/api/v1/uploads/private-url` | GET | Auth | Get short-lived (15-min) pre-signed GET URL for sensitive documents (`nid_front`, `nid_back`, `gd_document`). Authorized only for document owner or moderators (`requireRole(['moderator', 'super_admin'])`). |
+
+**Step 5.1.3 — Background Video Processing & Thumbnail Queue (`src/queues/mediaProcessing.queue.ts`):**
+- When a listing video is confirmed, enqueue a BullMQ job to extract a poster thumbnail at 1.0s and verify video bitrate/duration, offloading all compute from the main HTTP API server.
+
+**Step 5.1.4 — Orphan Media Cleanup Worker (`src/queues/orphanCleanup.worker.ts`):**
+- Recurring BullMQ cron job (runs daily at 3:00 AM BST) checking uploads older than 24 hours that are unconfirmed or never linked to an active `Listing`, `User`, or `Dispute` document. Automatically deletes orphaned S3 objects to keep cloud storage lean and prevent abandoned file bloat.
+
+---
 
 **Step 5.2 — Implement listing endpoints (see `api-spec.md` Section 5):**
 
@@ -560,6 +611,49 @@ The core function `executeAtomicDealClosure(listingId, sellerId, buyerId, finalP
    - CORS configured correctly.
    - Rate limit headers present (X-RateLimit-Limit, X-RateLimit-Remaining).
    - Error responses never leak internal stack traces in production.
+
+---
+
+### Postman API Testing Suite & Verification Protocol
+
+For interactive manual and automated regression testing using **Postman**, pre-configured Collection and Environment files are provided in the `docs/` directory:
+
+- **Collection:** `docs/becha-kena.postman_collection.json` (Postman Collection v2.1.0)
+- **Environment:** `docs/becha-kena.postman_environment.json` (Localhost Dev Environment)
+
+#### 1. Setup & Installation:
+1. Download and install **Postman Desktop** from [postman.com/downloads](https://www.postman.com/downloads/).
+2. In Postman, click **Import** (top left).
+3. Select and import both files:
+   - `docs/becha-kena.postman_collection.json`
+   - `docs/becha-kena.postman_environment.json`
+4. Set the active environment dropdown (top right) to **Becha-Kena (Localhost Dev)**.
+
+#### 2. Automatic Token Capture & Dynamic Chaining:
+The Postman collection is equipped with automatic test scripts for zero-friction testing:
+- **Auto-Auth (`Verify OTP`):** Extracts `accessToken` from response and automatically updates the Postman `{{accessToken}}` environment variable. All subsequent endpoints inherit this Bearer token automatically via collection-level auth.
+- **Dynamic Variable Chaining:**
+  - `POST /api/v1/listings` auto-captures `{{listingId}}`.
+  - `POST /api/v1/chats/initiate` auto-captures `{{conversationId}}`.
+  - `POST /api/v1/chats/:conversationId/offers` auto-captures `{{offerId}}`.
+  - `POST /api/v1/deals` auto-captures `{{dealId}}`.
+  - `POST /api/v1/reports` auto-captures `{{reportId}}`.
+  - `POST /api/v1/deals/:dealId/disputes` auto-captures `{{disputeId}}`.
+
+#### 3. Endpoint Folders Included:
+- `00. Health & Meta` (Health check & API info)
+- `01. Auth & Device Security` (OTP request, verify, token refresh, logout, profile)
+- `02. Users & Profile` (Current user profile, public user review score)
+- `03. Identity & E-KYC` (OCR, verify NID, status, SIM rebind, new device verify)
+- `04. Media Direct Uploads` (Presigned S3 PUT/GET URLs, confirmation)
+- `05. Listings Engine` (CRUD, status patch, geospatial filter, 30-day renewal, phone reveal gate)
+- `06. Favorites & Wishlist` (Add, remove, list with price-drop computation)
+- `07. Conversations & Chat` (Thread initiation, inbox list, message history, link stripping)
+- `08. Formal Offer Negotiation` (3-round counter-offer flow, accept, decline)
+- `09. Deals & Bilateral Reviews` (Atomic deal closure, direct sale, receipts, 48h reviews)
+- `10. Community Safety & Reports` (Scam/harassment reporting, auto-quarantine trigger)
+- `11. Legal Disputes (Police GD)` (Stolen gadget dispute filing, seller freeze, status query)
+- `12. Admin & Dual-Approval Ban` (Manual KYC review queue, report triage, dispute resolution, 2-step ban)
 
 ---
 

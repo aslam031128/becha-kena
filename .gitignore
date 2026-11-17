@@ -58,9 +58,10 @@ coverage/
 # File Uploads & Local Storage (C2C Marketplace assets)
 uploads/
 **/uploads/
-storage/
+/storage/
 temp/
 tmp/
+!backend/src/services/storage/
 *.dump
 
 # Database files

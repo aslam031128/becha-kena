@@ -11,6 +11,7 @@ module.exports = {
       max_memory_restart: '500M',
       env: {
         NODE_ENV: 'production',
+        PORT: 5000,
       },
     },
     {
@@ -22,9 +23,10 @@ module.exports = {
       exec_mode: 'fork',
       autorestart: true,
       watch: false,
-      max_memory_restart: '600M',
+      max_memory_restart: '800M',
       env: {
         NODE_ENV: 'production',
+        PORT: 3000,
       },
     },
   ],

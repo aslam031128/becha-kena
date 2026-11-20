@@ -102,20 +102,20 @@ export const otpRequestCooldownLimiter: RateLimitRequestHandler = rateLimit({
 
 /**
  * 2b. OTP Request Daily Quota:
- * Max 5 requests / 24 hours per phone.
+ * Max 50 requests / 24 hours per phone.
  */
 export const otpRequestDailyLimiter: RateLimitRequestHandler = rateLimit({
   windowMs: 24 * 60 * 60 * 1000, // 24 hours
-  limit: 5,
+  limit: 50,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   passOnStoreError: true,
   keyGenerator: getPhoneKey,
   store: getStore('otp-daily'),
   validate: { xForwardedForHeader: false, default: false },
-  message: 'Daily OTP request limit reached. Maximum 5 requests allowed per 24 hours.',
+  message: 'Daily OTP request limit reached. Maximum 50 requests allowed per 24 hours.',
   handler: createRateLimitHandler(
-    'Daily OTP request limit reached. Maximum 5 requests allowed per 24 hours.',
+    'Daily OTP request limit reached. Maximum 50 requests allowed per 24 hours.',
     ErrorCodes.OTP_ATTEMPTS_EXCEEDED
   )
 });

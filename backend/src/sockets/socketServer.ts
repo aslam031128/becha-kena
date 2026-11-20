@@ -12,15 +12,24 @@ export const initSocketServer = (httpServer: HttpServer): SocketIOServer => {
     cors: {
       origin: (origin, callback) => {
         if (!origin) return callback(null, true);
+        const allowedPatterns = [
+          /^https?:\/\/(www\.)?hyperwire\.tech(:\d+)?$/,
+          /^https?:\/\/(www\.)?becha-kenabd\.tech(:\d+)?$/,
+          /^https?:\/\/189\.31\.32\.6(:\d+)?$/,
+          /^https?:\/\/localhost(:\d+)?$/,
+          /^https?:\/\/127\.0\.0\.1(:\d+)?$/,
+          /^http:\/\/(192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+)(:\d+)?$/
+        ];
+
         const isAllowed =
           origin === env.CLIENT_URL ||
-          origin === 'http://localhost:3000' ||
-          origin === 'http://127.0.0.1:3000' ||
-          /^http:\/\/(192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+):3000$/.test(origin);
-        if (isAllowed || env.NODE_ENV === 'development') {
+          allowedPatterns.some((pattern) => pattern.test(origin)) ||
+          env.NODE_ENV === 'development';
+
+        if (isAllowed) {
           return callback(null, true);
         }
-        return callback(new Error(`CORS blocked for origin: ${origin}`));
+        return callback(null, false);
       },
       credentials: true,
       methods: ['GET', 'POST']

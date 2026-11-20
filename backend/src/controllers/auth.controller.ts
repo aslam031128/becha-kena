@@ -70,15 +70,13 @@ export const requestOtp = async (
     // 5. Send OTP via configured SMS Provider (BulkSMSBD / AlphaSMS / Mock)
     await SmsService.sendOtp(normalizedPhone, otp);
 
-    if (env.NODE_ENV === 'development') {
-      console.log('\n======================================================');
-      console.log(`🔑 [BECHA-KENA DEV OTP] Phone: ${normalizedPhone}`);
-      console.log(`👉 OTP CODE: >>> ${otp} <<<`);
-      console.log('⏳ Valid for: 120 seconds');
-      console.log('======================================================\n');
-    }
+    console.log('\n======================================================');
+    console.log(`🔑 [BECHA-KENA OTP] Phone: ${normalizedPhone}`);
+    console.log(`👉 OTP CODE: >>> ${otp} <<<`);
+    console.log('⏳ Valid for: 120 seconds');
+    console.log('======================================================\n');
 
-    logger.info(`📱 OTP requested for phone ${normalizedPhone.slice(0, 7)}**** (TTL: ${OTP_TTL_SECONDS}s)`);
+    logger.info(`📱 OTP generated for phone ${normalizedPhone}: ${otp} (TTL: ${OTP_TTL_SECONDS}s)`);
 
     sendSuccess(
       res,

@@ -175,14 +175,11 @@ export const verifyOtp = async (
         );
       }
 
-      // Hardware Device Binding Check
+      // Hardware Device Binding Check: keep latest devices and rotate oldest if limit reached
       if (!user.deviceUUIDs.includes(deviceUUID)) {
-        if (user.deviceUUIDs.length >= 2) {
-          // "New Phone, Same SIM" detected with >2 active devices: 423 Locked
-          throw new LockedError(
-            'Maximum active devices (2) exceeded. Biometric verification challenge required.',
-            ErrorCodes.DEVICE_LIMIT_EXCEEDED
-          );
+        const MAX_ACTIVE_DEVICES = 5;
+        if (user.deviceUUIDs.length >= MAX_ACTIVE_DEVICES) {
+          user.deviceUUIDs.shift();
         }
 
         user.deviceUUIDs.push(deviceUUID);
